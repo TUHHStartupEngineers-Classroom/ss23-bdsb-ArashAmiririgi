@@ -28,7 +28,8 @@ joined_data_wragled <- joined_data_wragled %>% select(-ends_with('.id'))
 joined_data_wragled <- bind_cols(joined_data_wragled, joined_data %>% select(order.id))
 joined_data_wragled <- joined_data_wragled %>% select(order.id, contains('order'),
   contains('model'), contains('category'), price, quantity, total_price, everything())
-glimpse(joined_data_wragled)
+joined_data_wragled <- joined_data_wragled %>% set_names(names(.) %>% str_replace_all('\\.', '_'))
+joined_data_wragled <- joined_data_wragled %>% rename(bikeshop = name)
 
 ################################last step is not done
 
@@ -36,17 +37,43 @@ glimpse(joined_data_wragled)
 # 6.1 Sales by Year ----
 
 # Step 1 - Manipulate
+sales_by_year <- joined_data_wragled %>% select(order_date, total_price)
+sales_by_year <- sales_by_year %>% mutate(year = year(order_date))
+library(scales)
+sales_by_year <- sales_by_year %>% group_by(year) %>% summarise(sales = sum(total_price))
+sales_by_year <- sales_by_year %>% mutate(sales_text = dollar(sales, big.mark = '.',
+  decimal_mark = ',', prefix = '', suffix = ' €'))
 
 # Step 2 - Visualize
-
+sales_by_year %>% ggplot(aes(x = year, y = sales)) + 
+  geom_col(fill = "#2DC6D6") +
+  geom_label(aes(label = sales_text)) + 
+  geom_smooth(method = `lm`, se = FALSE) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
+    decimal_mark = ',', prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by year", subtitle = "Upward Trend",
+  x = "", y = "Revenue")
 
 # 6.2 Sales by Year and Category 2 ----
 
 # Step 1 - Manipulate
+sales_by_year_cat <- joined_data_wragled %>%
+  select(order_date, total_price, category_1) %>%
+  mutate(year = year(order_date)) %>%
+  group_by(year, category_1) %>% summarise(sales = sum(total_price)) %>%
+  ungroup() %>%
+  mutate(sales_text = dollar(sales, big.mark = '.',
+    decimal_mark = ',', prefix = '', suffix = ' €'))
 
 # Step 2 - Visualize
-
-
+sales_by_year_cat %>% ggplot(aes(x = year, y = sales, fill = category_1)) + 
+  geom_col() +
+  facet_wrap(~ category_1) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
+        decimal_mark = ',', prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by year and main category",
+        subtitle = "Each product category has an upward trend",
+        fill= 'Main category')
 
 # 7.0 Writing Files ----
 
