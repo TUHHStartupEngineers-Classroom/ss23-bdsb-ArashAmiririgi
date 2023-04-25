@@ -76,9 +76,55 @@ sales_by_year_cat %>% ggplot(aes(x = year, y = sales, fill = category_1)) +
         fill= 'Main category')
 
 # 7.0 Writing Files ----
+install.packages("writexl")
+library("writexl")
 
 # 7.1 Excel ----
+write_xlsx(joined_data_wragled, 'Chapter 2/joined_data_wragled.xlsx')
 
 # 7.2 CSV ----
+write_csv(joined_data_wragled, 'Chapter 2/joined_data_wragled.csv')
 
 # 7.3 RDS ----
+write_rds(joined_data_wragled, 'Chapter 2/joined_data_wragled.rds')
+
+# Challenge ----
+# first ----
+joined_data_wragled <- joined_data_wragled %>% separate(col = 'location',
+  into = c('city', 'state'), sep = ', ')
+sales_by_state <- joined_data_wragled %>%
+  group_by(state) %>%  summarise(sales = sum(total_price)) %>%
+  ungroup()
+sales_by_state <- sales_by_state %>% mutate(sales_text = dollar(sales, big.mark = '.',
+  decimal_mark = ',', prefix = '', suffix = ' €'))
+
+sales_by_state %>% ggplot(aes(x = state, y = sales)) + 
+  geom_col(fill = "red") +
+  geom_label(aes(label = sales_text)) + 
+  geom_smooth(method = `lm`, se = FALSE) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
+                                                    decimal_mark = ',', prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by state",x = "", y = "Revenue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# second ----
+sales_by_year_state <- joined_data_wragled %>%
+  select(order_date, total_price, state) %>%
+  mutate(year = year(order_date)) %>%
+  group_by(year, state) %>% summarise(sales = sum(total_price)) %>%
+  ungroup() %>%
+  mutate(sales_text = dollar(sales, big.mark = '.',
+    decimal_mark = ',', prefix = '', suffix = ' €'))
+
+sales_by_year_state %>% ggplot(aes(x = year, y = sales, fill = state)) + 
+  geom_col() +
+  facet_wrap(~ state) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
+    decimal_mark = ',', prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by year and state",
+    fill= 'state')
+
+
+
+
+
