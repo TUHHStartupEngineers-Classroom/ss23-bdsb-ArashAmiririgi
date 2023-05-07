@@ -3,12 +3,13 @@ title: "Tidyverse"
 author: "Arash Amiririgi"
 ---
 
-**Sales analysis by state and year:**
+**Sales analysis:**
 
 
-**Code:**
+*Code:*
 
 ```{r}
+
 # Load libraries ----
 library(tidyverse)
 library(rvest)
@@ -17,11 +18,14 @@ library(tibble)
 library(rmarkdown)
 library(readxl)
 library(scales)
+options(dplyr.summarise.inform = FALSE)
 
 # Importing Files ----
+suppressMessages({
 bikes <- read_excel('bikes.xlsx')
 bikeshops <- read_excel('bikeshops.xlsx')
 orderlines <- read_excel('orderlines.xlsx')
+})
 
 # Joining Data ----
 joined_data <- left_join(orderlines, bikes,
@@ -47,16 +51,8 @@ joined_data_wragled <- joined_data_wragled %>% separate(col = 'location',
 sales_by_state <- joined_data_wragled %>%
   group_by(state) %>%  summarise(sales = sum(total_price)) %>%
   ungroup()
-sales_by_state <- sales_by_state %>% mutate('sales_text' = dollar(sales, big.mark = '.',
+sales_by_state <- sales_by_state %>% mutate('sales_text' = dollar(sales, big.mark = ',',
   prefix = '', suffix = ' €'))
-
-sales_by_state %>% ggplot(aes(x = state, y = sales)) + 
-  geom_col(fill = "red") +
-  geom_label(aes(label = sales_text)) + 
-  geom_smooth(method = `lm`, se = FALSE) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.', prefix = '', suffix = ' €')) +
-  labs( title = "Revenue by state",x = "", y = "Revenue") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # analysis by year and state ----
 sales_by_year_state <- joined_data_wragled %>%
@@ -64,15 +60,28 @@ sales_by_year_state <- joined_data_wragled %>%
   mutate('year' = year(order_date)) %>%
   group_by(year, state) %>% summarise(sales = sum(total_price)) %>%
   ungroup() %>%
-  mutate('sales_text' = dollar(sales, big.mark = '.', prefix = '', suffix = ' €'))
-
-sales_by_year_state %>% ggplot(aes(x = year, y = sales, fill = state)) + 
-  geom_col() +
-  facet_wrap(~ state) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-    prefix = '', suffix = ' €')) +
-  labs( title = "Revenue by year and state", fill= 'state')
+  mutate('sales_text' = dollar(sales, big.mark = ',', prefix = '', suffix = ' €'))
 ```
 
 
+*Sales by state graph*
+```{r fig.width=10, fig.height=7}
 
+  sales_by_state %>% ggplot(aes(x = state, y = sales)) + 
+  geom_col(fill = "red") +
+  geom_label(aes(label = sales_text)) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = ',', prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by state",x = "", y = "Revenue") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+*Sales by year and state graph*
+```{r plot, fig.width=10, fig.height=7}
+sales_by_year_state %>% ggplot(aes(x = year, y = sales, fill = state)) + 
+  geom_col() +
+  facet_wrap(~ state) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = ',',
+    prefix = '', suffix = ' €')) +
+  labs( title = "Revenue by year and state", fill= 'state')
+```
