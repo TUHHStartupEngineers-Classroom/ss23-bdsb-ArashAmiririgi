@@ -1,14 +1,3 @@
----
-title: "Data Acquisition"
-author: "Arash Amiririgi"
----
-
-**A small database from [Radon-bikes](https://www.radon-bikes.de):**
-
-
-*Code*
-
-```{r}
 library(tidyverse)
 library(rvest)
 library(stringr)
@@ -18,7 +7,9 @@ library(jsonlite)
 library(purrr)
 library(glue)
 library(xopen)
-library(rmarkdown)
+
+# radon-bikes.de
+
 ## mountain E-bikes
 url <- 'https://www.radon-bikes.de/e-bike/mountainbike/'
 html <- read_html(url)
@@ -47,4 +38,5 @@ trekking_ebike <- trekking_ebike %>% mutate(E_bike_type = 'trekking', .before = 
 
 #### merging two tables
 ebike_radon <- bind_rows(mountain_ebike, trekking_ebike)
-```
+print(ebike_radon, n=36)
+
