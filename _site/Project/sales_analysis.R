@@ -6,9 +6,9 @@ library(tidyverse)
 library(readxl)
 
 # 2.0 Importing Files ----
-bikes <- read_excel('bikes.xlsx')
-bikeshops <- read_excel('bikeshops.xlsx')
-orderlines <- read_excel('orderlines.xlsx')
+bikes <- read_excel('_site/Project/bikes.xlsx')
+bikeshops <- read_excel('_site/Project/bikeshops.xlsx')
+orderlines <- read_excel('_site/Project/orderlines.xlsx')
 
 # 3.0 Examining Data ----
 glimpse(orderlines)
