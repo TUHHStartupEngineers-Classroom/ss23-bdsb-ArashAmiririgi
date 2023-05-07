@@ -3,12 +3,21 @@
 
 # 1.0 Load libraries ----
 library(tidyverse)
+library(rvest)
+library(stringr)
+library(tibble)
+library(httr)
+library(jsonlite)
+library(purrr)
+library(glue)
+library(xopen)
+library(rmarkdown)
 library(readxl)
 
 # 2.0 Importing Files ----
-bikes <- read_excel('_site/Project/bikes.xlsx')
-bikeshops <- read_excel('_site/Project/bikeshops.xlsx')
-orderlines <- read_excel('_site/Project/orderlines.xlsx')
+bikes <- read_excel('_site/Project/Tidyverse/bikes.xlsx')
+bikeshops <- read_excel('_site/Project/Tidyverse/bikeshops.xlsx')
+orderlines <- read_excel('_site/Project/Tidyverse/orderlines.xlsx')
 
 # 3.0 Examining Data ----
 glimpse(orderlines)
