@@ -3,126 +3,32 @@ title: "Tidyverse"
 author: "Arash Amiririgi"
 ---
 
-
-This is a `.qmd` file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a \# in front of your text, it will create a top level-header.
-
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
-
-# Text Formatting
-
-*italics* and **bold**
-
-superscript^2^ / subscript~2~
-
-~~strikethrough~~
-
-`verbatim code`
-
-> Blockquote
-
-# Headings
-
-## Header 2
-### Header 3
-#### Header 4
-##### Header 5
-###### Header 6
-
-# Links & Images
-
-<https://quarto.org>
-
-[Quarto](https://quarto.org)
-
-![Caption](../../assets/img/elephant.png)    
-
-[![Caption](../../assets/img/elephant.png)](https://quarto.org)
-
-[![Caption](../../assets/img/elephant.png)](https://quarto.org "An elephant")
-
-
-# Lists
-
-* unordered list
-    + sub-item 1
-    + sub-item 2
-        - sub-sub-item 1
-        
-*   item 2
-
-    Continued (indent 4 spaces)
-    
-    
-1. ordered list
-2. item 2
-    i) sub-item 1
-         A.  sub-sub-item 1
-         
-(@)  A list whose numbering
-
-continues after
-
-(@)  an interruption
-
-# Tables
-
-| Right | Left | Default | Center |
-|------:|:-----|---------|:------:|
-|   12  |  12  |    12   |    12  |
-|  123  |  123 |   123   |   123  |
-|    1  |    1 |     1   |     1  |
-
-# Source Code
-
-Use ``` to delimit blocks of source code:
-
-```
-code
-```
-
-Add a language to syntax highlight code blocks:
-
-```{r}
-1 + 1
-```
-
-```{r}
-cars
-```
-
-```{r}
-plot(cars)
-```
-
-
 **Sales analysis by state and year:**
 
 
 **Code:**
 
 ```{r}
-# 1.0 Load libraries ----
+# Load libraries ----
 library(tidyverse)
 library(rvest)
 library(stringr)
 library(tibble)
 library(rmarkdown)
 library(readxl)
+library(scales)
 
-# 2.0 Importing Files ----
-bikes <- read_excel('content/01_journal/bikes.xlsx')
-bikeshops <- read_excel('content/01_journal/bikeshops.xlsx')
-orderlines <- read_excel('content/01_journal/orderlines.xlsx')
+# Importing Files ----
+bikes <- read_excel('bikes.xlsx')
+bikeshops <- read_excel('bikeshops.xlsx')
+orderlines <- read_excel('orderlines.xlsx')
 
-# 3.0 Examining Data ----
-glimpse(orderlines)
-
-# 4.0 Joining Data ----
+# Joining Data ----
 joined_data <- left_join(orderlines, bikes,
   by=c('product.id'='bike.id')) %>% left_join(bikeshops,
   by=c('customer.id'='bikeshop.id'))
 
-# 5.0 Wrangling Data ----
+# Wrangling Data ----
 joined_data_wragled <- separate(joined_data, col = 'category',
   into = c('category.1', 'category.2', 'category.3')
   ,sep = ' - ')
@@ -135,96 +41,36 @@ joined_data_wragled <- joined_data_wragled %>% select(order.id, contains('order'
 joined_data_wragled <- joined_data_wragled %>% set_names(names(.) %>% str_replace_all('\\.', '_'))
 joined_data_wragled <- joined_data_wragled %>% rename(bikeshop = name)
 
-################################last step is not done
-
-# 6.0 Business Insights ----
-# 6.1 Sales by Year ----
-
-# Step 1 - Manipulate
-sales_by_year <- joined_data_wragled %>% select(order_date, total_price)
-sales_by_year <- sales_by_year %>% mutate(year = year(order_date))
-library(scales)
-sales_by_year <- sales_by_year %>% group_by(year) %>% summarise(sales = sum(total_price))
-sales_by_year <- sales_by_year %>% mutate(sales_text = dollar(sales, big.mark = '.',
-  decimal_mark = ',', prefix = '', suffix = ' €'))
-
-# Step 2 - Visualize
-sales_by_year %>% ggplot(aes(x = year, y = sales)) + 
-  geom_col(fill = "#2DC6D6") +
-  geom_label(aes(label = sales_text)) + 
-  geom_smooth(method = `lm`, se = FALSE) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-    decimal_mark = ',', prefix = '', suffix = ' €')) +
-  labs( title = "Revenue by year", subtitle = "Upward Trend",
-  x = "", y = "Revenue")
-
-# 6.2 Sales by Year and Category 2 ----
-
-# Step 1 - Manipulate
-sales_by_year_cat <- joined_data_wragled %>%
-  select(order_date, total_price, category_1) %>%
-  mutate(year = year(order_date)) %>%
-  group_by(year, category_1) %>% summarise(sales = sum(total_price)) %>%
-  ungroup() %>%
-  mutate(sales_text = dollar(sales, big.mark = '.',
-    decimal_mark = ',', prefix = '', suffix = ' €'))
-
-# Step 2 - Visualize
-sales_by_year_cat %>% ggplot(aes(x = year, y = sales, fill = category_1)) + 
-  geom_col() +
-  facet_wrap(~ category_1) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-        decimal_mark = ',', prefix = '', suffix = ' €')) +
-  labs( title = "Revenue by year and main category",
-        subtitle = "Each product category has an upward trend",
-        fill= 'Main category')
-
-# 7.0 Writing Files ----
-install.packages("writexl")
-library("writexl")
-
-# 7.1 Excel ----
-# write_xlsx(joined_data_wragled, 'Chapter 2/joined_data_wragled.xlsx')
-
-# 7.2 CSV ----
-# write_csv(joined_data_wragled, 'Chapter 2/joined_data_wragled.csv')
-
-# 7.3 RDS ----
-# write_rds(joined_data_wragled, 'Chapter 2/joined_data_wragled.rds')
-
-# Challenge ----
-# first ----
+# analysis by state ----
 joined_data_wragled <- joined_data_wragled %>% separate(col = 'location',
   into = c('city', 'state'), sep = ', ')
 sales_by_state <- joined_data_wragled %>%
   group_by(state) %>%  summarise(sales = sum(total_price)) %>%
   ungroup()
-sales_by_state <- sales_by_state %>% mutate(sales_text = dollar(sales, big.mark = '.',
-  decimal_mark = ',', prefix = '', suffix = ' €'))
+sales_by_state <- sales_by_state %>% mutate('sales_text' = dollar(sales, big.mark = '.',
+  prefix = '', suffix = ' €'))
 
 sales_by_state %>% ggplot(aes(x = state, y = sales)) + 
   geom_col(fill = "red") +
   geom_label(aes(label = sales_text)) + 
   geom_smooth(method = `lm`, se = FALSE) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-                                                    decimal_mark = ',', prefix = '', suffix = ' €')) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.', prefix = '', suffix = ' €')) +
   labs( title = "Revenue by state",x = "", y = "Revenue") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# second ----
+# analysis by year and state ----
 sales_by_year_state <- joined_data_wragled %>%
   select(order_date, total_price, state) %>%
-  mutate(year = year(order_date)) %>%
+  mutate('year' = year(order_date)) %>%
   group_by(year, state) %>% summarise(sales = sum(total_price)) %>%
   ungroup() %>%
-  mutate(sales_text = dollar(sales, big.mark = '.',
-    decimal_mark = ',', prefix = '', suffix = ' €'))
+  mutate('sales_text' = dollar(sales, big.mark = '.', prefix = '', suffix = ' €'))
 
 sales_by_year_state %>% ggplot(aes(x = year, y = sales, fill = state)) + 
   geom_col() +
   facet_wrap(~ state) +
   scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-    decimal_mark = ',', prefix = '', suffix = ' €')) +
+    prefix = '', suffix = ' €')) +
   labs( title = "Revenue by year and state", fill= 'state')
 ```
 

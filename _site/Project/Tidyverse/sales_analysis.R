@@ -15,9 +15,9 @@ library(rmarkdown)
 library(readxl)
 
 # 2.0 Importing Files ----
-bikes <- read_excel('_site/Project/Tidyverse/bikes.xlsx')
-bikeshops <- read_excel('_site/Project/Tidyverse/bikeshops.xlsx')
-orderlines <- read_excel('_site/Project/Tidyverse/orderlines.xlsx')
+bikes <- read_excel('bikes.xlsx')
+bikeshops <- read_excel('bikeshops.xlsx')
+orderlines <- read_excel('orderlines.xlsx')
 
 # 3.0 Examining Data ----
 glimpse(orderlines)
@@ -85,7 +85,6 @@ sales_by_year_cat %>% ggplot(aes(x = year, y = sales, fill = category_1)) +
         fill= 'Main category')
 
 # 7.0 Writing Files ----
-install.packages("writexl")
 library("writexl")
 
 # 7.1 Excel ----
@@ -128,8 +127,7 @@ sales_by_year_state <- joined_data_wragled %>%
 sales_by_year_state %>% ggplot(aes(x = year, y = sales, fill = state)) + 
   geom_col() +
   facet_wrap(~ state) +
-  scale_y_continuous(labels = scales::dollar_format(big.mark = '.',
-    decimal_mark = ',', prefix = '', suffix = ' €')) +
+  scale_y_continuous(labels = scales::dollar_format(big.mark = '.', prefix = '', suffix = ' €')) +
   labs( title = "Revenue by year and state", fill= 'state')
 
 
