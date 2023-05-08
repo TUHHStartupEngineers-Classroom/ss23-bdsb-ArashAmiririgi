@@ -9,7 +9,6 @@ library(glue)
 library(xopen)
 
 # radon-bikes.de
-
 ## mountain E-bikes
 url <- 'https://www.radon-bikes.de/e-bike/mountainbike/'
 html <- read_html(url)
@@ -41,24 +40,10 @@ ebike_radon <- bind_rows(mountain_ebike, trekking_ebike)
 print(ebike_radon, n=36)
 
 
-
-url3 <- "https://api-football-v1.p.rapidapi.com/v3/timezone"
-
-response <- VERB("GET", url, add_headers('X-RapidAPI-Key' = 'e7af728c11mshdfa2eeea5a618c0p1a01f2jsnaf586a5b5b25', 'X-RapidAPI-Host' = 'api-football-v1.p.rapidapi.com'), content_type("application/octet-stream"))
-
-content(response, "text")
-
-
-
-
-
-
-
-
-
-
-
-
+# API
+resp <- GET('https://rickandmortyapi.com/api/character')
+character_table <- fromJSON(rawToChar(resp$content))$results %>% as_tibble()
+character_table <- character_table %>% select(name, status, species, gender, origin, image)
 
 
 
