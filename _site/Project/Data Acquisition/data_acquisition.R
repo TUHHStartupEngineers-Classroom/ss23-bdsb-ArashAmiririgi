@@ -40,3 +40,31 @@ trekking_ebike <- trekking_ebike %>% mutate(E_bike_type = 'trekking', .before = 
 ebike_radon <- bind_rows(mountain_ebike, trekking_ebike)
 print(ebike_radon, n=36)
 
+
+
+url3 <- "https://api-football-v1.p.rapidapi.com/v3/timezone"
+
+response <- VERB("GET", url, add_headers('X-RapidAPI-Key' = 'e7af728c11mshdfa2eeea5a618c0p1a01f2jsnaf586a5b5b25', 'X-RapidAPI-Host' = 'api-football-v1.p.rapidapi.com'), content_type("application/octet-stream"))
+
+content(response, "text")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
