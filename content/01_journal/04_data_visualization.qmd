@@ -102,14 +102,17 @@ cumulative_cases %>% ggplot(aes(date, cumulative_cases, color = location)) +
 ## data manipulation ----
 world <- map_data("world") 
 
-mortality_rate <- covid_data_tbl %>% select(continent, location, new_deaths, population) %>%
+mortality_rate <- covid_data_tbl %>% filter(date <= '2022-04-16') %>%
+  select(continent, location, new_deaths, population) %>%
   mutate(new_deaths = replace_na(new_deaths, 0)) %>% filter(!(is.na(continent))) %>%
   select(2:4)
+total_death <- round(sum(mortality_rate$new_deaths) / 1e6, digits = 1)
 deaths_ratio <- mortality_rate %>% group_by(location) %>%
   reframe(deaths_per_population = sum(new_deaths) / population) %>%
   group_by(location) %>% slice(1) %>% ungroup() %>%
   set_names(c('country', 'deaths_per_population')) %>%
   as.data.frame
+deaths_ratio['deaths_per_population'][deaths_ratio['deaths_per_population'] == 0] <- NA
 deaths_ratio['country'][deaths_ratio['country'] == 'United Kingdom'] <- 'UK'
 deaths_ratio['country'][deaths_ratio['country'] == 'United States'] <- 'USA'
 deaths_ratio['country'][deaths_ratio['country'] == 'Democratic Republic of Congo'] <-
@@ -118,14 +121,14 @@ deaths_ratio['country'][deaths_ratio['country'] == 'Democratic Republic of Congo
 combined_data <- merge(world, deaths_ratio, by.x = "region", by.y = "country", all.x = TRUE)
 
 ## ggplot ----
-suppressWarnings(ggplot() + geom_map(data = combined_data, map = world,
+suppressWarnings(ggplot() + geom_map(data = combined_data, map = world, color = 'white',
          aes(x = long, y = lat, map_id = region, fill = deaths_per_population)) +
   scale_fill_gradient(low = "red", high = "black", na.value = 'gray',
                       labels = scales::label_percent()) +
   theme_void() + 
   labs(title = "Confirmed COVID-19 deaths relative to the size of the population",
-       subtitle = "Around 6.2 Million confirmed COVID-19 deaths worldwide",
-       caption = "Date 04/16/21",
+       subtitle =  str_glue("Around {total_death} Million confirmed COVID-19 deaths worldwid"),
+       caption = "Date 04/16/22",
        x = '', y = '',
        fill = "Mortality Rate") +
   scale_x_continuous(breaks = NULL) +
