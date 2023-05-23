@@ -1,8 +1,112 @@
 ---
 title: "Data Wrangling"
-author: "Joschka Schwarz"
+author: "Arash Amiririgi"
 ---
 
 ::: callout-note
-You can delete everything in here and start fresh.
+A reduced data set related to patent data provided by the USPTO is analysed here.
 :::
+
+``` {r}
+library(tidyverse)
+library(data.table)
+library(vroom)
+library(lubridate)
+
+col_patent_types <- list(id = col_character(), date = col_date("%Y-%m-%d"),
+                         num_claims = col_double())
+col_patent_assignee_types <- list(patent_id = col_character(),
+                                  assignee_id = col_character())
+col_assignee_types <- list(id = col_character(), type = col_double(),
+                           organization = col_character())
+col_uspc_types <- list(patent_id = col_character(), mainclass_id = col_double(),
+                       sequence = col_double())
+patent_tbl <- vroom(file = "patent.tsv", delim = "\t", col_types  = col_patent_types, 
+                    na = c("", "NA", "NULL"))
+patent_assignee_tbl <- vroom(file = "patent_assignee.tsv", delim = "\t",
+                     col_types  = col_patent_assignee_types, na = c("", "NA", "NULL"))
+assignee_tbl <- vroom(file = "assignee.tsv", delim = "\t",
+                      col_types  = col_assignee_types, na = c("", "NA", "NULL"))
+uspc_tbl <- vroom(file = "uspc.tsv", delim = "\t", col_types  = col_uspc_types,
+                  na = c("", "NA", "NULL"))
+```
+
+## Question:
+### Patent Dominance: What US company / corporation has the most patents? List the 10 US companies with the most assigned/granted patents.
+
+### using dplyr
+```{r}
+patent_organization_dplyr <- left_join(patent_assignee_tbl,assignee_tbl,
+                                       by= c("assignee_id"="id"))
+patent_organization_dplyr %>% filter(!(is.na(organization)) & type == 2) %>%
+  group_by(organization) %>%
+summarise(number_of_patents = n()) %>% ungroup() %>% arrange(desc(number_of_patents)) %>%
+  head(10)
+```
+
+### using data.table
+```{r}
+setDT(patent_assignee_tbl)
+setDT(assignee_tbl)
+patent_organization_dt <- patent_assignee_tbl[assignee_tbl, on= c("assignee_id"="id")]
+patent_organization_dt[!(is.na(organization)) & type == 2, .N, by = organization][
+  order(-N)] %>% head(10)
+```
+
+## Question:
+### Recent patent activity: What US company had the most patents granted in August 2014? List the top 10 companies with the most new granted patents for August 2014.
+
+### using dplyr
+```{r}
+patent_organization_date_dplyr <- left_join(patent_organization_dplyr, patent_tbl,
+                                            by = c('patent_id' = 'id')) %>% select(1:5)
+patent_organization_date_dplyr %>% filter(!(is.na(organization)) &
+                                            month(date) == 8 & type == 2) %>%
+  group_by(organization) %>% summarise(number_of_patents = n()) %>%
+  ungroup() %>% arrange(desc(number_of_patents)) %>% head(10)
+```
+
+### using data.table
+```{r}
+setDT(patent_tbl)
+patent_organization_date_dt <- patent_tbl[patent_organization_dt,
+                                          on = c('id' = 'patent_id')][,!('num_claims')]
+patent_organization_date_dt[!(is.na(organization)) & month(date) == 8 &
+                              type == 2, .N, by = organization][order(-N)] %>% head(10)
+```
+
+## Question:
+### Innovation in Tech: What is the most innovative tech sector? For the top 10 companies (worldwide) with the most patents, what are the top 5 USPTO tech main classes?
+
+### using dplyr
+```{r}
+patent_organization_class_dplyr <- left_join(patent_organization_dplyr,uspc_tbl,
+                               by = 'patent_id', relationship = "many-to-many") %>% select(1:5)
+patent_organization_class_dplyr <- patent_organization_class_dplyr %>%
+  filter(!(is.na(organization))) %>% group_by(organization) %>%
+  mutate(number_of_patents = n()) %>% ungroup()
+top_organization_dplyr <- patent_organization_class_dplyr %>%
+  group_by(organization) %>% slice(1) %>% ungroup() %>%
+  arrange(desc(number_of_patents)) %>% head(10) %>% pull(organization)
+patent_organization_class_dplyr %>% filter(organization %in% top_organization_dplyr &
+  !(is.na(mainclass_id))) %>% group_by(mainclass_id) %>%
+  summarise(number_of_incidents = n()) %>% ungroup() %>%
+  arrange(desc(number_of_incidents)) %>% head(5)
+```
+
+### using data.table
+```{r}
+setDT(uspc_tbl)
+patent_organization_class_dt <- uspc_tbl[patent_organization_dt,
+                                         on = 'patent_id'][,!('sequence')]
+patent_organization_class_dt <- patent_organization_class_dt[!(is.na(organization)),
+                                         number_of_patents := .N, by = organization]
+top_organization_dt <- patent_organization_class_dt[, .SD[1], by = organization][
+  order(-number_of_patents)] %>% head(10) %>% pull(organization)
+patent_organization_class_dt[!(is.na(mainclass_id)) & organization %in% top_organization_dt,
+                             .N, by = mainclass_id][order(-N)] %>% head(5)
+```
+
+
+
+

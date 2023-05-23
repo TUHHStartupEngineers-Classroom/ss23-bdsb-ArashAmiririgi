@@ -1,31 +1,10 @@
 [
   {
-    "objectID": "content/03_other/06_links.html",
-    "href": "content/03_other/06_links.html",
-    "title": "Links",
-    "section": "",
-    "text": "R is a free open-source programming language that can be used for statistical analysis, data-simulation, graphing, and lots of other stuff. Another free program is R-studio, that provides a nice graphic interface for R. Download R first, then download R-studio. Both can run on PCs, Macs or Linux. Students will be learning R in the stats labs using the lab manual .\n\n\n\n\nGoogle is great, Google your problem\nStackoverflow is great, google will often take you there because someone has already asked your question, and someone else has answered, usually many people have answered your question many ways."
-  },
-  {
-    "objectID": "content/01_journal/03_data_wrangling.html",
-    "href": "content/01_journal/03_data_wrangling.html",
-    "title": "Data Wrangling",
-    "section": "",
-    "text": "Note\n\n\n\nYou can delete everything in here and start fresh."
-  },
-  {
-    "objectID": "content/01_journal/04_data_visualization.html",
-    "href": "content/01_journal/04_data_visualization.html",
-    "title": "Data Visualization",
-    "section": "",
-    "text": "Note\n\n\n\nYou can delete everything in here and start fresh."
-  },
-  {
     "objectID": "content/01_journal/01_tidyverse.html",
     "href": "content/01_journal/01_tidyverse.html",
     "title": "Tidyverse",
     "section": "",
-    "text": "Note\n\n\n\nYou can delete everything in here and start fresh.\nThis is a .qmd file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a # in front of your text, it will create a top level-header.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+    "text": "Sales analysis:\nSome business insights for bike sellers is created in this section. Two analyses based on two important categories (year and state) have been made.\nCode:\n\n# Load libraries ----\nlibrary(tidyverse)\nlibrary(rvest)\nlibrary(stringr)\nlibrary(tibble)\nlibrary(rmarkdown)\nlibrary(readxl)\nlibrary(scales)\noptions(dplyr.summarise.inform = FALSE)\n\n# Importing Files ----\nsuppressMessages({\nbikes &lt;- read_excel('bikes.xlsx')\nbikeshops &lt;- read_excel('bikeshops.xlsx')\norderlines &lt;- read_excel('orderlines.xlsx')\n})\n\n# Joining Data ----\njoined_data &lt;- left_join(orderlines, bikes,\n  by=c('product.id'='bike.id')) %&gt;% left_join(bikeshops,\n  by=c('customer.id'='bikeshop.id'))\n\n# Wrangling Data ----\njoined_data_wragled &lt;- separate(joined_data, col = 'category',\n  into = c('category.1', 'category.2', 'category.3')\n  ,sep = ' - ')\njoined_data_wragled &lt;- joined_data_wragled %&gt;% mutate('total_price' = price * quantity)\njoined_data_wragled &lt;- joined_data_wragled %&gt;% select(-c(...1, gender))\njoined_data_wragled &lt;- joined_data_wragled %&gt;% select(-ends_with('.id'))\njoined_data_wragled &lt;- bind_cols(joined_data_wragled, joined_data %&gt;% select(order.id))\njoined_data_wragled &lt;- joined_data_wragled %&gt;% select(order.id, contains('order'),\n  contains('model'), contains('category'), price, quantity, total_price, everything())\njoined_data_wragled &lt;- joined_data_wragled %&gt;% set_names(names(.) %&gt;% str_replace_all('\\\\.', '_'))\njoined_data_wragled &lt;- joined_data_wragled %&gt;% rename(bikeshop = name)\n\n# analysis by state ----\njoined_data_wragled &lt;- joined_data_wragled %&gt;% separate(col = 'location',\n  into = c('city', 'state'), sep = ', ')\nsales_by_state &lt;- joined_data_wragled %&gt;%\n  group_by(state) %&gt;%  summarise(sales = sum(total_price)) %&gt;%\n  ungroup()\nsales_by_state &lt;- sales_by_state %&gt;% mutate('sales_text' = dollar(sales, big.mark = ',',\n  prefix = '', suffix = ' €'))\n\n# analysis by year and state ----\nsales_by_year_state &lt;- joined_data_wragled %&gt;%\n  select(order_date, total_price, state) %&gt;%\n  mutate('year' = year(order_date)) %&gt;%\n  group_by(year, state) %&gt;% summarise(sales = sum(total_price)) %&gt;%\n  ungroup() %&gt;%\n  mutate('sales_text' = dollar(sales, big.mark = ',', prefix = '', suffix = ' €'))\n\nThis graph compare total revenues of different states:\n\n  sales_by_state %&gt;% ggplot(aes(x = state, y = sales)) + \n  geom_col(fill = \"red\") +\n  geom_label(aes(label = sales_text)) +\n  scale_y_continuous(labels = scales::dollar_format(big.mark = ',', prefix = '', suffix = ' €')) +\n  labs( title = \"Revenue by state\",x = \"\", y = \"Revenue\") +\n  theme(axis.text.x = element_text(angle = 45, hjust = 1))\n\n\n\n\n\n\n\nThis graph compare total revenues of different states in different years:\n\nsales_by_year_state %&gt;% ggplot(aes(x = year, y = sales, fill = state)) + \n  geom_col() +\n  facet_wrap(~ state) +\n  scale_y_continuous(labels = scales::dollar_format(big.mark = ',',\n    prefix = '', suffix = ' €')) +\n  labs( title = \"Revenue by year and state\", fill= 'state')"
   },
   {
     "objectID": "content/01_journal/01_tidyverse.html#header-2",
@@ -39,7 +18,21 @@
     "href": "content/01_journal/02_data_acquisition.html",
     "title": "Data Acquisition",
     "section": "",
-    "text": "Note\n\n\n\nYou can delete everything in here and start fresh."
+    "text": "library(tidyverse)\nlibrary(rvest)\nlibrary(stringr)\nlibrary(tibble)\nlibrary(httr)\nlibrary(jsonlite)\nlibrary(purrr)\nlibrary(glue)\nlibrary(xopen)\nlibrary(rmarkdown)\n\nresp &lt;- GET('https://rickandmortyapi.com/api/character')\ncharacter_table &lt;- fromJSON(rawToChar(resp$content))$results %&gt;% as_tibble()\ncharacter_table &lt;- character_table %&gt;% select(id, name, status, species, gender)\ncharacter_table"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html",
+    "href": "content/01_journal/03_data_wrangling.html",
+    "title": "Data Wrangling",
+    "section": "",
+    "text": "Note\n\n\n\nA reduced data set related to patent data provided by the USPTO is analysed here.\nlibrary(tidyverse)\nlibrary(data.table)\nlibrary(vroom)\nlibrary(lubridate)\n\ncol_patent_types &lt;- list(id = col_character(), date = col_date(\"%Y-%m-%d\"),\n                         num_claims = col_double())\ncol_patent_assignee_types &lt;- list(patent_id = col_character(),\n                                  assignee_id = col_character())\ncol_assignee_types &lt;- list(id = col_character(), type = col_double(),\n                           organization = col_character())\ncol_uspc_types &lt;- list(patent_id = col_character(), mainclass_id = col_double(),\n                       sequence = col_double())\npatent_tbl &lt;- vroom(file = \"patent.tsv\", delim = \"\\t\", col_types  = col_patent_types, \n                    na = c(\"\", \"NA\", \"NULL\"))\npatent_assignee_tbl &lt;- vroom(file = \"patent_assignee.tsv\", delim = \"\\t\",\n                     col_types  = col_patent_assignee_types, na = c(\"\", \"NA\", \"NULL\"))\nassignee_tbl &lt;- vroom(file = \"assignee.tsv\", delim = \"\\t\",\n                      col_types  = col_assignee_types, na = c(\"\", \"NA\", \"NULL\"))\nuspc_tbl &lt;- vroom(file = \"uspc.tsv\", delim = \"\\t\", col_types  = col_uspc_types,\n                  na = c(\"\", \"NA\", \"NULL\"))"
+  },
+  {
+    "objectID": "content/01_journal/04_data_visualization.html",
+    "href": "content/01_journal/04_data_visualization.html",
+    "title": "Data Visualization",
+    "section": "",
+    "text": "Note\n\n\n\nCOVID-19 number of cases in analysed and visualized here.\nlibrary(tidyverse)\nlibrary(dplyr, warn.conflicts = FALSE)\nlibrary(ggplot2)\nlibrary(scales)\nlibrary(lubridate)\nlibrary(ggthemes)\nlibrary(RColorBrewer)\nlibrary(viridisLite)\n\ncovid_data_tbl &lt;- read_csv(\"https://covid.ourworldindata.org/data/owid-covid-data.csv\", col_types = cols())"
   },
   {
     "objectID": "content/02_notes/05_class_notes.html",
@@ -49,11 +42,32 @@
     "text": "IMPORTANT: You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.\nThis is an .qmd file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a # in front of your text, it will create a top level-header."
   },
   {
+    "objectID": "content/03_other/06_links.html",
+    "href": "content/03_other/06_links.html",
+    "title": "Links",
+    "section": "",
+    "text": "R is a free open-source programming language that can be used for statistical analysis, data-simulation, graphing, and lots of other stuff. Another free program is R-studio, that provides a nice graphic interface for R. Download R first, then download R-studio. Both can run on PCs, Macs or Linux. Students will be learning R in the stats labs using the lab manual .\n\n\n\n\nGoogle is great, Google your problem\nStackoverflow is great, google will often take you there because someone has already asked your question, and someone else has answered, usually many people have answered your question many ways."
+  },
+  {
+    "objectID": "content/03_other/06_links.html#r-and-r-studio",
+    "href": "content/03_other/06_links.html#r-and-r-studio",
+    "title": "Links",
+    "section": "",
+    "text": "R is a free open-source programming language that can be used for statistical analysis, data-simulation, graphing, and lots of other stuff. Another free program is R-studio, that provides a nice graphic interface for R. Download R first, then download R-studio. Both can run on PCs, Macs or Linux. Students will be learning R in the stats labs using the lab manual ."
+  },
+  {
+    "objectID": "content/03_other/06_links.html#additional-r-resources",
+    "href": "content/03_other/06_links.html#additional-r-resources",
+    "title": "Links",
+    "section": "",
+    "text": "Google is great, Google your problem\nStackoverflow is great, google will often take you there because someone has already asked your question, and someone else has answered, usually many people have answered your question many ways."
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "My Lab Journal",
     "section": "",
-    "text": "This is a template example for lab journaling. Students in the data science courses at the Institute of Entrepreneurship will use this template to learn R for business analytics. Students can replace this text as they wish."
+    "text": "Course: Business Data Science Basics\n\nThe assignments and results can be found in relevant sections."
   },
   {
     "objectID": "index.html#how-to-use",
@@ -61,5 +75,110 @@
     "title": "My Lab Journal",
     "section": "How to use",
     "text": "How to use\n\nAccept the assignment and get your own github repo.\nBlog/journal what you are doing in R, by editing the .qmd files.\nSee the links page for lots of helpful links on learning R.\nChange everything to make it your own.\nMake sure to render you website everytime before you want to upload changes"
+  },
+  {
+    "objectID": "index.html#the-assignments-and-results-can-be-found-in-relevant-sections.",
+    "href": "index.html#the-assignments-and-results-can-be-found-in-relevant-sections.",
+    "title": "My Lab Journal",
+    "section": "The assignments and results can be found in relevant sections.",
+    "text": "The assignments and results can be found in relevant sections."
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#code",
+    "href": "content/01_journal/02_data_acquisition.html#code",
+    "title": "Data Acquisition",
+    "section": "\n2.1 Code:",
+    "text": "2.1 Code:\n\n## mountain E-bikes\nurl &lt;- 'https://www.radon-bikes.de/e-bike/mountainbike/'\nhtml &lt;- read_html(url)\n### model\nmountain_ebike &lt;- html %&gt;% html_nodes(css = \".row &gt; h2\") %&gt;%\n  html_text() %&gt;% as_tibble()\n### price\nmountain_ebike &lt;- mountain_ebike %&gt;% mutate(new_col=(html\n  %&gt;% html_nodes(css = \".currency_eur .m-serienpanel__price--active\") %&gt;% \n  html_text() %&gt;% str_remove_all(' €')))\n### column names\nmountain_ebike &lt;- mountain_ebike %&gt;% set_names(c('model', 'price'))\n\n## trekking Ebikes\nurl2 &lt;- 'https://www.radon-bikes.de/e-bike/trekking/'\nhtml2 &lt;- read_html(url2)\n### model\ntrekking_ebike &lt;- html2 %&gt;% html_nodes(css = \".row &gt; h2\") %&gt;%\n  html_text() %&gt;% as_tibble()\n### price\ntrekking_ebike &lt;- trekking_ebike %&gt;% mutate(new_col=(html2 %&gt;% html_nodes(css =\n  \".currency_eur .m-serienpanel__price--active\") %&gt;% \n  html_text() %&gt;% str_remove_all(' €')))\n### column names\ntrekking_ebike &lt;- trekking_ebike %&gt;% set_names(c('model', 'price'))\n\n#### merging two tables\nebike_radon &lt;- bind_rows(mountain_ebike, trekking_ebike)"
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#trekking-ebikes",
+    "href": "content/01_journal/02_data_acquisition.html#trekking-ebikes",
+    "title": "Data Acquisition",
+    "section": "1 trekking Ebikes",
+    "text": "1 trekking Ebikes\nurl2 &lt;- ‘https://www.radon-bikes.de/e-bike/trekking/’ html2 &lt;- read_html(url2) ### model trekking_ebike &lt;- html2 %&gt;% html_nodes(css = “.row &gt; h2”) %&gt;% html_text() %&gt;% as_tibble() ### price trekking_ebike &lt;- trekking_ebike %&gt;% mutate(new_col=(html2 %&gt;% html_nodes(css = “.currency_eur .m-serienpanel__price–active”) %&gt;% html_text() %&gt;% str_remove_all(’ €‘))) ### column names trekking_ebike &lt;- trekking_ebike %&gt;% set_names(c(’model’, ‘price’)) trekking_ebike &lt;- trekking_ebike %&gt;% mutate(E_bike_type = ‘trekking’, .before = 1)\n\nmerging two tables\nebike_radon &lt;- bind_rows(mountain_ebike, trekking_ebike) print(ebike_radon, n=36)```"
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#mountain-e-bikes",
+    "href": "content/01_journal/02_data_acquisition.html#mountain-e-bikes",
+    "title": "Data Acquisition",
+    "section": "1 mountain E-bikes",
+    "text": "1 mountain E-bikes\nurl &lt;- ‘https://www.radon-bikes.de/e-bike/mountainbike/’ html &lt;- read_html(url) ### model mountain_ebike &lt;- html %&gt;% html_nodes(css = “.row &gt; h2”) %&gt;% html_text() %&gt;% as_tibble() ### price mountain_ebike &lt;- mountain_ebike %&gt;% mutate(new_col=(html %&gt;% html_nodes(css = “.currency_eur .m-serienpanel__price–active”) %&gt;% html_text() %&gt;% str_remove_all(’ €‘))) ### column names mountain_ebike &lt;- mountain_ebike %&gt;% set_names(c(’model’, ‘price’)) mountain_ebike &lt;- mountain_ebike %&gt;% mutate(E_bike_type = ‘mountain’, .before = 1)"
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#results",
+    "href": "content/01_journal/02_data_acquisition.html#results",
+    "title": "Data Acquisition",
+    "section": "\n2.2 Results:",
+    "text": "2.2 Results:\n\nebike_radon"
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#code-1",
+    "href": "content/01_journal/02_data_acquisition.html#code-1",
+    "title": "Data Acquisition",
+    "section": "\n2.1 Code:",
+    "text": "2.1 Code:\n\nlibrary(tidyverse)\nlibrary(rvest)\nlibrary(stringr)\nlibrary(tibble)\nlibrary(httr)\nlibrary(jsonlite)\nlibrary(purrr)\nlibrary(glue)\nlibrary(xopen)\nlibrary(rmarkdown)\n\n## mountain E-bikes\nurl &lt;- 'https://www.radon-bikes.de/e-bike/mountainbike/'\nhtml &lt;- read_html(url)\n### model\nmountain_ebike &lt;- html %&gt;% html_nodes(css = \".row &gt; h2\") %&gt;%\n  html_text() %&gt;% as_tibble()\n### price\nmountain_ebike &lt;- mountain_ebike %&gt;% mutate(new_col=(html\n  %&gt;% html_nodes(css = \".currency_eur .m-serienpanel__price--active\") %&gt;% \n  html_text() %&gt;% str_remove_all(' €')))\n### column names\nmountain_ebike &lt;- mountain_ebike %&gt;% set_names(c('model', 'price'))\n\n## trekking Ebikes\nurl2 &lt;- 'https://www.radon-bikes.de/e-bike/trekking/'\nhtml2 &lt;- read_html(url2)\n### model\ntrekking_ebike &lt;- html2 %&gt;% html_nodes(css = \".row &gt; h2\") %&gt;%\n  html_text() %&gt;% as_tibble()\n### price\ntrekking_ebike &lt;- trekking_ebike %&gt;% mutate(new_col=(html2 %&gt;% html_nodes(css =\n  \".currency_eur .m-serienpanel__price--active\") %&gt;% \n  html_text() %&gt;% str_remove_all(' €')))\n### column names\ntrekking_ebike &lt;- trekking_ebike %&gt;% set_names(c('model', 'price'))\n\n#### merging two tables\nebike_radon &lt;- bind_rows(mountain_ebike, trekking_ebike)"
+  },
+  {
+    "objectID": "content/01_journal/02_data_acquisition.html#results-1",
+    "href": "content/01_journal/02_data_acquisition.html#results-1",
+    "title": "Data Acquisition",
+    "section": "\n2.2 Results:",
+    "text": "2.2 Results:\n\nebike_radon"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question-1-patent-dominance-what-us-company-corporation-has-the-most-patents-list-the-10-us-companies-with-the-most-assignedgranted-patents.",
+    "href": "content/01_journal/03_data_wrangling.html#question-1-patent-dominance-what-us-company-corporation-has-the-most-patents-list-the-10-us-companies-with-the-most-assignedgranted-patents.",
+    "title": "Data Wrangling",
+    "section": "\n1 Question 1: Patent Dominance: What US company / corporation has the most patents? List the 10 US companies with the most assigned/granted patents.",
+    "text": "1 Question 1: Patent Dominance: What US company / corporation has the most patents? List the 10 US companies with the most assigned/granted patents.\nusing dplyr\n\npatent_organization_dplyr &lt;- left_join(patent_assignee_tbl,assignee_tbl, by= c(\"assignee_id\"=\"id\"))\npatent_organization_dplyr %&gt;% filter(!(is.na(organization)) & type == 2) %&gt;% group_by(organization) %&gt;%\n  summarise(number_of_patents = n()) %&gt;% ungroup() %&gt;% arrange(desc(number_of_patents)) %&gt;% head(10)\n\n\n\n\norganization\nnumber_of_patents\n\n\n\nInternational Business Machines Corporation\n7547\n\n\nMicrosoft Corporation\n3165\n\n\nGoogle Inc.\n2668\n\n\nQUALCOMM Incorporated\n2597\n\n\nApple Inc.\n2201\n\n\nGeneral Electric Company\n1873\n\n\nHewlett-Packard Development Company, L.P.\n1638\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n1625\n\n\nIntel Corporation\n1616\n\n\nGM Global Technology Operations LLC\n1533\n\n\n\n\n\n\nusing data.table\n\nsetDT(patent_assignee_tbl)\nsetDT(assignee_tbl)\npatent_organization_dt &lt;- patent_assignee_tbl[assignee_tbl, on= c(\"assignee_id\"=\"id\")]\npatent_organization_dt[!(is.na(organization)) & type == 2, .N, by = organization][order(-N)] %&gt;% head(10)\n\n\n\n\norganization\nN\n\n\n\nInternational Business Machines Corporation\n7547\n\n\nMicrosoft Corporation\n3165\n\n\nGoogle Inc.\n2668\n\n\nQUALCOMM Incorporated\n2597\n\n\nApple Inc.\n2201\n\n\nGeneral Electric Company\n1873\n\n\nHewlett-Packard Development Company, L.P.\n1638\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n1625\n\n\nIntel Corporation\n1616\n\n\nGM Global Technology Operations LLC\n1533"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question-2-recent-patent-activity-what-us-company-had-the-most-patents-granted-in-august-2014-list-the-top-10-companies-with-the-most-new-granted-patents-for-august-2014.",
+    "href": "content/01_journal/03_data_wrangling.html#question-2-recent-patent-activity-what-us-company-had-the-most-patents-granted-in-august-2014-list-the-top-10-companies-with-the-most-new-granted-patents-for-august-2014.",
+    "title": "Data Wrangling",
+    "section": "\n2 Question 2: Recent patent activity: What US company had the most patents granted in August 2014? List the top 10 companies with the most new granted patents for August 2014.",
+    "text": "2 Question 2: Recent patent activity: What US company had the most patents granted in August 2014? List the top 10 companies with the most new granted patents for August 2014.\nusing dplyr\n\npatent_organization_date_dplyr &lt;- left_join(patent_organization_dplyr, patent_tbl, by = c('patent_id' = 'id')) %&gt;%\n  select(1:5)\npatent_organization_date_dplyr %&gt;% filter(!(is.na(organization)) & month(date) == 8 & type == 2) %&gt;%\n  group_by(organization) %&gt;% summarise(number_of_patents = n()) %&gt;% ungroup() %&gt;% arrange(desc(number_of_patents)) %&gt;% head(10)\n\n\n\n\norganization\nnumber_of_patents\n\n\n\nInternational Business Machines Corporation\n718\n\n\nMicrosoft Corporation\n337\n\n\nGoogle Inc.\n240\n\n\nQUALCOMM Incorporated\n223\n\n\nApple Inc.\n222\n\n\nIntel Corporation\n159\n\n\nGeneral Electric Company\n148\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n146\n\n\nHewlett-Packard Development Company, L.P.\n140\n\n\nGM Global Technology Operations LLC\n138\n\n\n\n\n\n\nusing data.table\n\nsetDT(patent_tbl)\npatent_organization_date_dt &lt;- patent_tbl[patent_organization_dt, on = c('id' = 'patent_id')][,!('num_claims')]\npatent_organization_date_dt[!(is.na(organization)) & month(date) == 8 & type == 2, .N, by = organization][order(-N)] %&gt;% head(10)\n\n\n\n\norganization\nN\n\n\n\nInternational Business Machines Corporation\n718\n\n\nMicrosoft Corporation\n337\n\n\nGoogle Inc.\n240\n\n\nQUALCOMM Incorporated\n223\n\n\nApple Inc.\n222\n\n\nIntel Corporation\n159\n\n\nGeneral Electric Company\n148\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n146\n\n\nHewlett-Packard Development Company, L.P.\n140\n\n\nGM Global Technology Operations LLC\n138"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question-3innovation-in-tech-what-is-the-most-innovative-tech-sector-for-the-top-10-companies-worldwide-with-the-most-patents-what-are-the-top-5-uspto-tech-main-classes",
+    "href": "content/01_journal/03_data_wrangling.html#question-3innovation-in-tech-what-is-the-most-innovative-tech-sector-for-the-top-10-companies-worldwide-with-the-most-patents-what-are-the-top-5-uspto-tech-main-classes",
+    "title": "Data Wrangling",
+    "section": "\n3 Question 3:Innovation in Tech: What is the most innovative tech sector? For the top 10 companies (worldwide) with the most patents, what are the top 5 USPTO tech main classes?",
+    "text": "3 Question 3:Innovation in Tech: What is the most innovative tech sector? For the top 10 companies (worldwide) with the most patents, what are the top 5 USPTO tech main classes?\nusing dplyr\n\npatent_organization_class_dplyr &lt;- left_join(patent_organization_dplyr,uspc_tbl, relationship = \"many-to-many\") %&gt;% select(1:5)\n\n#&gt; Joining with `by = join_by(patent_id)`\n\npatent_organization_class_dplyr &lt;- patent_organization_class_dplyr %&gt;% filter(!(is.na(organization))) %&gt;% group_by(organization) %&gt;%\n  mutate(number_of_patents = n()) %&gt;% ungroup()\ntop_organization_dplyr &lt;- patent_organization_class_dplyr %&gt;% group_by(organization) %&gt;% slice(1) %&gt;% ungroup() %&gt;%\n  arrange(desc(number_of_patents)) %&gt;% head(10) %&gt;% pull(organization)\npatent_organization_class_dplyr %&gt;% filter(organization %in% top_organization_dplyr & !(is.na(mainclass_id))) %&gt;%\n  group_by(mainclass_id) %&gt;% summarise(number_of_incidents = n()) %&gt;% ungroup() %&gt;% arrange(desc(number_of_incidents)) %&gt;% head(5)\n\n\n\n\nmainclass_id\nnumber_of_incidents\n\n\n\n257\n7979\n\n\n455\n6191\n\n\n370\n5483\n\n\n348\n4113\n\n\n709\n4018\n\n\n\n\n\n\nusing data.table\n\nsetDT(uspc_tbl)\npatent_organization_class_dt &lt;- uspc_tbl[patent_organization_dt, on = 'patent_id'][,!('sequence')]\npatent_organization_class_dt &lt;- patent_organization_class_dt[-(is.na(organization)), number_of_patents := .N, by = organization]\n\n#&gt; Warning in `[.data.table`(patent_organization_class_dt, -(is.na(organization)),\n#&gt; : Item 867402 of i is -1 which removes that item but that has occurred before.\n#&gt; Ignoring this dup and 5962 other dups.\n\ntop_organization_dt &lt;- patent_organization_class_dt[, .SD[1], by = organization][order(-number_of_patents)] %&gt;% head(10) %&gt;% pull(organization)\npatent_organization_class_dt[!(is.na(mainclass_id)) & organization %in% top_organization_dt, .N, by = mainclass_id][order(-N)] %&gt;% head(5)\n\n\n\n\nmainclass_id\nN\n\n\n\n257\n7979\n\n\n455\n6191\n\n\n370\n5483\n\n\n348\n4113\n\n\n709\n4018"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question",
+    "href": "content/01_journal/03_data_wrangling.html#question",
+    "title": "Data Wrangling",
+    "section": "\n1 Question:",
+    "text": "1 Question:\nPatent Dominance: What US company / corporation has the most patents? List the 10 US companies with the most assigned/granted patents.\nusing dplyr\n\npatent_organization_dplyr &lt;- left_join(patent_assignee_tbl,assignee_tbl,\n                                       by= c(\"assignee_id\"=\"id\"))\npatent_organization_dplyr %&gt;% filter(!(is.na(organization)) & type == 2) %&gt;%\n  group_by(organization) %&gt;%\nsummarise(number_of_patents = n()) %&gt;% ungroup() %&gt;% arrange(desc(number_of_patents)) %&gt;%\n  head(10)\n\n\n\n\norganization\nnumber_of_patents\n\n\n\nInternational Business Machines Corporation\n7547\n\n\nMicrosoft Corporation\n3165\n\n\nGoogle Inc.\n2668\n\n\nQUALCOMM Incorporated\n2597\n\n\nApple Inc.\n2201\n\n\nGeneral Electric Company\n1873\n\n\nHewlett-Packard Development Company, L.P.\n1638\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n1625\n\n\nIntel Corporation\n1616\n\n\nGM Global Technology Operations LLC\n1533\n\n\n\n\n\n\nusing data.table\n\nsetDT(patent_assignee_tbl)\nsetDT(assignee_tbl)\npatent_organization_dt &lt;- patent_assignee_tbl[assignee_tbl, on= c(\"assignee_id\"=\"id\")]\npatent_organization_dt[!(is.na(organization)) & type == 2, .N, by = organization][\n  order(-N)] %&gt;% head(10)\n\n\n\n\norganization\nN\n\n\n\nInternational Business Machines Corporation\n7547\n\n\nMicrosoft Corporation\n3165\n\n\nGoogle Inc.\n2668\n\n\nQUALCOMM Incorporated\n2597\n\n\nApple Inc.\n2201\n\n\nGeneral Electric Company\n1873\n\n\nHewlett-Packard Development Company, L.P.\n1638\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n1625\n\n\nIntel Corporation\n1616\n\n\nGM Global Technology Operations LLC\n1533"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question-1",
+    "href": "content/01_journal/03_data_wrangling.html#question-1",
+    "title": "Data Wrangling",
+    "section": "\n2 Question:",
+    "text": "2 Question:\nRecent patent activity: What US company had the most patents granted in August 2014? List the top 10 companies with the most new granted patents for August 2014.\nusing dplyr\n\npatent_organization_date_dplyr &lt;- left_join(patent_organization_dplyr, patent_tbl,\n                                            by = c('patent_id' = 'id')) %&gt;% select(1:5)\npatent_organization_date_dplyr %&gt;% filter(!(is.na(organization)) &\n                                            month(date) == 8 & type == 2) %&gt;%\n  group_by(organization) %&gt;% summarise(number_of_patents = n()) %&gt;%\n  ungroup() %&gt;% arrange(desc(number_of_patents)) %&gt;% head(10)\n\n\n\n\norganization\nnumber_of_patents\n\n\n\nInternational Business Machines Corporation\n718\n\n\nMicrosoft Corporation\n337\n\n\nGoogle Inc.\n240\n\n\nQUALCOMM Incorporated\n223\n\n\nApple Inc.\n222\n\n\nIntel Corporation\n159\n\n\nGeneral Electric Company\n148\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n146\n\n\nHewlett-Packard Development Company, L.P.\n140\n\n\nGM Global Technology Operations LLC\n138\n\n\n\n\n\n\nusing data.table\n\nsetDT(patent_tbl)\npatent_organization_date_dt &lt;- patent_tbl[patent_organization_dt,\n                                          on = c('id' = 'patent_id')][,!('num_claims')]\npatent_organization_date_dt[!(is.na(organization)) & month(date) == 8 &\n                              type == 2, .N, by = organization][order(-N)] %&gt;% head(10)\n\n\n\n\norganization\nN\n\n\n\nInternational Business Machines Corporation\n718\n\n\nMicrosoft Corporation\n337\n\n\nGoogle Inc.\n240\n\n\nQUALCOMM Incorporated\n223\n\n\nApple Inc.\n222\n\n\nIntel Corporation\n159\n\n\nGeneral Electric Company\n148\n\n\nAT&T INTELLECTUAL PROPERTY I, L.P.\n146\n\n\nHewlett-Packard Development Company, L.P.\n140\n\n\nGM Global Technology Operations LLC\n138"
+  },
+  {
+    "objectID": "content/01_journal/03_data_wrangling.html#question-2",
+    "href": "content/01_journal/03_data_wrangling.html#question-2",
+    "title": "Data Wrangling",
+    "section": "\n3 Question:",
+    "text": "3 Question:\nInnovation in Tech: What is the most innovative tech sector? For the top 10 companies (worldwide) with the most patents, what are the top 5 USPTO tech main classes?\nusing dplyr\n\npatent_organization_class_dplyr &lt;- left_join(patent_organization_dplyr,uspc_tbl,\n                               by = 'patent_id', relationship = \"many-to-many\") %&gt;% select(1:5)\npatent_organization_class_dplyr &lt;- patent_organization_class_dplyr %&gt;%\n  filter(!(is.na(organization))) %&gt;% group_by(organization) %&gt;%\n  mutate(number_of_patents = n()) %&gt;% ungroup()\ntop_organization_dplyr &lt;- patent_organization_class_dplyr %&gt;%\n  group_by(organization) %&gt;% slice(1) %&gt;% ungroup() %&gt;%\n  arrange(desc(number_of_patents)) %&gt;% head(10) %&gt;% pull(organization)\npatent_organization_class_dplyr %&gt;% filter(organization %in% top_organization_dplyr &\n  !(is.na(mainclass_id))) %&gt;% group_by(mainclass_id) %&gt;%\n  summarise(number_of_incidents = n()) %&gt;% ungroup() %&gt;%\n  arrange(desc(number_of_incidents)) %&gt;% head(5)\n\n\n\n\nmainclass_id\nnumber_of_incidents\n\n\n\n257\n7979\n\n\n455\n6191\n\n\n370\n5483\n\n\n348\n4113\n\n\n709\n4018\n\n\n\n\n\n\nusing data.table\n\nsetDT(uspc_tbl)\npatent_organization_class_dt &lt;- uspc_tbl[patent_organization_dt,\n                                         on = 'patent_id'][,!('sequence')]\npatent_organization_class_dt &lt;- patent_organization_class_dt[!(is.na(organization)),\n                                         number_of_patents := .N, by = organization]\ntop_organization_dt &lt;- patent_organization_class_dt[, .SD[1], by = organization][\n  order(-number_of_patents)] %&gt;% head(10) %&gt;% pull(organization)\npatent_organization_class_dt[!(is.na(mainclass_id)) & organization %in% top_organization_dt,\n                             .N, by = mainclass_id][order(-N)] %&gt;% head(5)\n\n\n\n\nmainclass_id\nN\n\n\n\n257\n7979\n\n\n455\n6191\n\n\n370\n5483\n\n\n348\n4113\n\n\n709\n4018"
+  },
+  {
+    "objectID": "content/01_journal/04_data_visualization.html#challenge",
+    "href": "content/01_journal/04_data_visualization.html#challenge",
+    "title": "Data Visualization",
+    "section": "\n1 Challenge:",
+    "text": "1 Challenge:\nTime course of the cumulative Covid-19 cases!\n\n## data manipulation for desired coutries ----\ncovid_cases_country &lt;- covid_data_tbl %&gt;%\n  select(location, date, new_cases) %&gt;%\n  mutate(new_cases = replace_na(new_cases, 0))\n\ncovid_cases_country &lt;- covid_cases_country %&gt;%\n  filter(location == \"Germany\" | location == \"France\" |location == \"Spain\" |\n           location == \"United Kingdom\" |\n           location == \"United States\") %&gt;%\n  filter(date &lt;= '2022-04-19')\n\ncovid_cases_country &lt;- covid_cases_country %&gt;%\n  group_by(location) %&gt;% mutate(cum_sum = cumsum(new_cases)) %&gt;%\n  ungroup()\n\ncovid_cases_country &lt;- covid_cases_country %&gt;% select(1:2, 4) %&gt;%\n  set_names(c('location', 'date', 'cumulative_cases'))\n\n## data manipulation for Europe ----\ncovid_cases_Europe &lt;- covid_data_tbl %&gt;%\n  select(continent, location, date, new_cases) %&gt;%\n  mutate(new_cases = replace_na(new_cases, 0))\n\ncovid_cases_Europe &lt;- covid_cases_Europe %&gt;%\n  filter(continent == 'Europe') %&gt;%\n  filter(date &lt;= '2022-04-19')\n\noptions(dplyr.summarise.inform = FALSE)\ncovid_cases_Europe &lt;- covid_cases_Europe %&gt;%\n  group_by(continent, date) %&gt;% summarise(new_cases = sum(new_cases)) %&gt;%\n  ungroup()\n\ncovid_cases_Europe &lt;- covid_cases_Europe %&gt;% \n  mutate(cum_sum = cumsum(new_cases))\n\ncovid_cases_Europe &lt;- covid_cases_Europe %&gt;% select(1:2, 4) %&gt;%\n  set_names(c('location', 'date', 'cumulative_cases'))\n\n## data combination ----\ncumulative_cases &lt;- bind_rows(covid_cases_country, covid_cases_Europe)\n\n## ggplot ----\n#cumulative_cases %&gt;% ggplot()\ncumulative_cases %&gt;% ggplot(aes(date, cumulative_cases, color = location)) +\n  geom_line() +\n  scale_color_brewer(palette = \"Spectral\") +\n  scale_y_continuous(labels = dollar_format(scale = 1e-6,\n                                            prefix = \"\", suffix = \" M\")) +\n  geom_label(aes(label =  dollar(cumulative_cases, big.mark = '.',\n                                 decimal.mark = ',', prefix = '', suffix = '')),\n             vjust = 1, hjust = 1.3, size  = 3,\n             fill  = \"red\",color = \"white\",\n             data = cumulative_cases %&gt;% slice(n())) +\n  geom_label(aes(label =  dollar(cumulative_cases, big.mark = '.',\n                                 decimal.mark = ',', prefix = '', suffix = '')),\n             vjust = -0.2, hjust = 1.2, size  = 3,\n             fill  = \"blue\",color = \"white\",\n             data = cumulative_cases %&gt;% slice(4190)) +\n  labs(title = \"COVID-19 confirmed cases worldwide\",\n       subtitle = \"As of 19/04/2022\",\n       x = \"\", y = \"Cumulative Cases\",\n       color = \"Continent / Country\") +\n  theme_light() +\n  theme(legend.position = \"bottom\", \n        plot.title = element_text(face = 'bold')) +\n  theme(axis.title = element_text(face = \"bold\")) +\n  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 6)) +\n  scale_x_date(date_breaks = \"1 month\", date_labels = \"%B %y\") +\n  expand_limits(x = c(as.Date('2020-01-01', format = \"%Y-%m-%d\"),\n                      as.Date('2022-04-01', format = \"%Y-%m-%d\")))"
+  },
+  {
+    "objectID": "content/01_journal/04_data_visualization.html#challenge-1",
+    "href": "content/01_journal/04_data_visualization.html#challenge-1",
+    "title": "Data Visualization",
+    "section": "\n2 Challenge:",
+    "text": "2 Challenge:\nVisualization of the distribution of the mortality rate.\n\n## data manipulation ----\nworld &lt;- map_data(\"world\") \n\nmortality_rate &lt;- covid_data_tbl %&gt;% filter(date &lt;= '2022-04-16') %&gt;%\n  select(continent, location, total_deaths, population) %&gt;%\n  filter(!(is.na(continent))) %&gt;% select(2:4)\nsuppressWarnings(deaths_ratio &lt;- mortality_rate %&gt;% group_by(location) %&gt;%\n  reframe(deaths_per_population = max(total_deaths, na.rm = T) / population) %&gt;%\n  group_by(location) %&gt;% slice(1) %&gt;% ungroup() %&gt;%\n  set_names(c('country', 'deaths_per_population')) %&gt;%\n  as.data.frame)\n\ntotal_death &lt;- round(sum((covid_data_tbl %&gt;% filter(date &lt;= '2022-04-16' & !(is.na(continent))) %&gt;%\n  mutate(new_deaths = replace_na(new_deaths, 0)))$new_deaths) / 1e6, digits = 1)\n                                                            \ndeaths_ratio['deaths_per_population'][deaths_ratio['deaths_per_population'] == -Inf] &lt;- NA\ndeaths_ratio['country'][deaths_ratio['country'] == 'United Kingdom'] &lt;- 'UK'\ndeaths_ratio['country'][deaths_ratio['country'] == 'United States'] &lt;- 'USA'\ndeaths_ratio['country'][deaths_ratio['country'] == 'Democratic Republic of Congo'] &lt;-\n  'Democratic Republic of the Congo'\n\ncombined_data &lt;- merge(world, deaths_ratio, by.x = \"region\", by.y = \"country\", all.x = TRUE)\n\n## ggplot ----\nsuppressWarnings(ggplot() + geom_map(data = combined_data, map = world, color = 'white',\n         aes(x = long, y = lat, map_id = region, fill = deaths_per_population)) +\n  scale_fill_gradient(low = \"red\", high = \"black\", na.value = 'gray',\n                      labels = scales::label_percent()) +\n  theme_void() + \n  labs(title = \"Confirmed COVID-19 deaths relative to the size of the population\",\n       subtitle = str_glue(\"Around {total_death} Million confirmed COVID-19 deaths worldwid\"),\n       caption = \"Date 04/16/22\",\n       x = '', y = '',\n       fill = \"Mortality Rate\") +\n  scale_x_continuous(breaks = NULL) +\n  scale_y_continuous(breaks = NULL))"
   }
 ]

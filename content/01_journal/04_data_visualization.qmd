@@ -1,8 +1,141 @@
 ---
 title: "Data Visualization"
-author: "Joschka Schwarz"
+author: "Arash Amiririgi"
 ---
 
 ::: callout-note
-You can delete everything in here and start fresh.
+COVID-19 number of cases in analysed and visualized here.
 :::
+
+```{r}
+library(tidyverse)
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(scales)
+library(lubridate)
+library(ggthemes)
+library(RColorBrewer)
+library(viridisLite)
+
+covid_data_tbl <- read_csv("https://covid.ourworldindata.org/data/owid-covid-data.csv", col_types = cols())
+
+```
+
+## Challenge:
+### Time course of the cumulative Covid-19 cases!
+```{r}
+## data manipulation for desired coutries ----
+covid_cases_country <- covid_data_tbl %>%
+  select(location, date, new_cases) %>%
+  mutate(new_cases = replace_na(new_cases, 0))
+
+covid_cases_country <- covid_cases_country %>%
+  filter(location == "Germany" | location == "France" |location == "Spain" |
+           location == "United Kingdom" |
+           location == "United States") %>%
+  filter(date <= '2022-04-19')
+
+covid_cases_country <- covid_cases_country %>%
+  group_by(location) %>% mutate(cum_sum = cumsum(new_cases)) %>%
+  ungroup()
+
+covid_cases_country <- covid_cases_country %>% select(1:2, 4) %>%
+  set_names(c('location', 'date', 'cumulative_cases'))
+
+## data manipulation for Europe ----
+covid_cases_Europe <- covid_data_tbl %>%
+  select(continent, location, date, new_cases) %>%
+  mutate(new_cases = replace_na(new_cases, 0))
+
+covid_cases_Europe <- covid_cases_Europe %>%
+  filter(continent == 'Europe') %>%
+  filter(date <= '2022-04-19')
+
+options(dplyr.summarise.inform = FALSE)
+covid_cases_Europe <- covid_cases_Europe %>%
+  group_by(continent, date) %>% summarise(new_cases = sum(new_cases)) %>%
+  ungroup()
+
+covid_cases_Europe <- covid_cases_Europe %>% 
+  mutate(cum_sum = cumsum(new_cases))
+
+covid_cases_Europe <- covid_cases_Europe %>% select(1:2, 4) %>%
+  set_names(c('location', 'date', 'cumulative_cases'))
+
+## data combination ----
+cumulative_cases <- bind_rows(covid_cases_country, covid_cases_Europe)
+
+## ggplot ----
+#cumulative_cases %>% ggplot()
+cumulative_cases %>% ggplot(aes(date, cumulative_cases, color = location)) +
+  geom_line() +
+  scale_color_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = dollar_format(scale = 1e-6,
+                                            prefix = "", suffix = " M")) +
+  geom_label(aes(label =  dollar(cumulative_cases, big.mark = '.',
+                                 decimal.mark = ',', prefix = '', suffix = '')),
+             vjust = 1, hjust = 1.3, size  = 3,
+             fill  = "red",color = "white",
+             data = cumulative_cases %>% slice(n())) +
+  geom_label(aes(label =  dollar(cumulative_cases, big.mark = '.',
+                                 decimal.mark = ',', prefix = '', suffix = '')),
+             vjust = -0.2, hjust = 1.2, size  = 3,
+             fill  = "blue",color = "white",
+             data = cumulative_cases %>% slice(4190)) +
+  labs(title = "COVID-19 confirmed cases worldwide",
+       subtitle = "As of 19/04/2022",
+       x = "", y = "Cumulative Cases",
+       color = "Continent / Country") +
+  theme_light() +
+  theme(legend.position = "bottom", 
+        plot.title = element_text(face = 'bold')) +
+  theme(axis.title = element_text(face = "bold")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 6)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%B %y") +
+  expand_limits(x = c(as.Date('2020-01-01', format = "%Y-%m-%d"),
+                      as.Date('2022-04-01', format = "%Y-%m-%d")))
+```
+
+## Challenge:
+### Visualization of the distribution of the mortality rate.
+```{r}
+## data manipulation ----
+world <- map_data("world") 
+
+mortality_rate <- covid_data_tbl %>% filter(date <= '2022-04-16') %>%
+  select(continent, location, total_deaths, population) %>%
+  filter(!(is.na(continent))) %>% select(2:4)
+suppressWarnings(deaths_ratio <- mortality_rate %>% group_by(location) %>%
+  reframe(deaths_per_population = max(total_deaths, na.rm = T) / population) %>%
+  group_by(location) %>% slice(1) %>% ungroup() %>%
+  set_names(c('country', 'deaths_per_population')) %>%
+  as.data.frame)
+
+total_death <- round(sum((covid_data_tbl %>% filter(date <= '2022-04-16' & !(is.na(continent))) %>%
+  mutate(new_deaths = replace_na(new_deaths, 0)))$new_deaths) / 1e6, digits = 1)
+                                                            
+deaths_ratio['deaths_per_population'][deaths_ratio['deaths_per_population'] == -Inf] <- NA
+deaths_ratio['country'][deaths_ratio['country'] == 'United Kingdom'] <- 'UK'
+deaths_ratio['country'][deaths_ratio['country'] == 'United States'] <- 'USA'
+deaths_ratio['country'][deaths_ratio['country'] == 'Democratic Republic of Congo'] <-
+  'Democratic Republic of the Congo'
+
+combined_data <- merge(world, deaths_ratio, by.x = "region", by.y = "country", all.x = TRUE)
+
+## ggplot ----
+suppressWarnings(ggplot() + geom_map(data = combined_data, map = world, color = 'white',
+         aes(x = long, y = lat, map_id = region, fill = deaths_per_population)) +
+  scale_fill_gradient(low = "red", high = "black", na.value = 'gray',
+                      labels = scales::label_percent()) +
+  theme_void() + 
+  labs(title = "Confirmed COVID-19 deaths relative to the size of the population",
+       subtitle = str_glue("Around {total_death} Million confirmed COVID-19 deaths worldwid"),
+       caption = "Date 04/16/22",
+       x = '', y = '',
+       fill = "Mortality Rate") +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL))
+```
+
+
+
